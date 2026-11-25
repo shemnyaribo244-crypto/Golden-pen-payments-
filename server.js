@@ -227,7 +227,15 @@ app.post("/api/stkpush", async (req, res) => {
       }
     );
 
-    const auth = await authResponse.json();
+    const authText = await authResponse.text();
+console.log("Daraja Auth:", authResponse.status, authText);
+
+let auth;
+try {
+  auth = JSON.parse(authText);
+} catch {
+  throw new Error("Daraja authentication returned an empty or invalid response.");
+}
 
     if (!authResponse.ok || !auth.access_token) {
       return res.status(502).json({
