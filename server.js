@@ -283,7 +283,15 @@ app.post("/api/stkpush", async (req, res) => {
       }
     );
 
-    const result = await stkResponse.json();
+    const stkText = await stkResponse.text();
+console.log("Daraja STK:", stkResponse.status, stkText);
+
+let result;
+try {
+  result = JSON.parse(stkText);
+} catch {
+  throw new Error("Daraja STK returned an empty or invalid response.");
+      }
 
     if (!stkResponse.ok || result.ResponseCode !== "0") {
       return res.status(502).json({
