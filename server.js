@@ -325,6 +325,76 @@ small{color:#bbb}
   `);
 });
 
-app.listen(PORT,()=>{
+app.get("/ticket", (req, res) => {
+  res.send(`
+    <h2>Golden Pen Show – Check Your Ticket</h2>
+    <p>Enter the phone number and M-PESA transaction code used during payment.</p>
+    <form id="ticketForm">
+      <input name="phone" placeholder="Phone number" required />
+      <br><br>
+      <input name="receipt" placeholder="M-PESA transaction code" required />
+      <br><br>
+      <button type="submit">Check Ticket</button>
+    </form>
+    <p id="result"></p>
+    <script>
+      document.getElementById("ticketForm").onsubmit = async function(e) {
+        e.preventDefault();
+        const data = Object.fromEntries(new FormData(this));
+        const result = document.getElementById("result");
+        result.textContent = "Checking...";
+        try {
+          const response = await fetch("/api/ticket-lookup", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(data)
+          });
+          const answer = await response.json();
+          result.textContent = answer.message || (
+            answer.status === "paid"
+              ? "Payment confirmed! Ticket: " + answer.ticketCode + " (" + answer.ticketType + ")"
+              : "Payment status: " + answer.status
+          );
+        } catch {
+          result.textContent = "Unable to check. Please try again.";
+        }
+      };
+    </script>
+  `);
+});
+
+app.post("/api/ticket-lookup", async (req, res) => {
+  const phone = String(req.body.phone || "").replace(/\s/g, "");
+  const receipt = String(req.body.receipt || "").trim().toUpperCase();
+
+  if (!/^(\+254|254|0)7\d{8}$/.test(phone) || !/^[A-Z0-9]{8,12}$/.test(receipt)) {
+    return res.status(400).json({message: "Enter a valid phone number and M-PESA code."});
+  }
+
+  const {data, error} = await supabase
+    .from("ticket_sales")
+    .select("payment_status,ticket_code,ticket_type")
+    .eq("customer_phone", phone)
+    .eq("submitted_receipt", receipt)
+    .maybeSingle();
+
+  if (error) return res.status(500).json({message: "Unable to check right now."});
+  if (!data) return res.status(404).json({message: "No matching payment record found."});
+
+  if (data.payment_status === "paid") {
+    return res.json({
+      status: "paid",
+      ticketCode: data.ticket_code,
+      ticketType: data.ticket_type
+    });
+  }
+
+  return res.json({
+    status: data.payment_status === "pending" ? "pending" : "not confirmed",
+    message: data.payment_status === "pending"
+      ? "Your payment is awaiting verification."
+      : "Payment has not been confirmed. Please contact the ticket seller."
+  });
+});app.listen(PORT,()=>{
   console.log("Golden Pen server running on port "+PORT);
 });
