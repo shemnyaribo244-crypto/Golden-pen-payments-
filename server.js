@@ -84,6 +84,12 @@ button{background:#d6a32a;border:0;font-weight:bold}
 #message{white-space:pre-wrap}
 </style>
 </head>
+<p style="margin-top:20px;">
+  Already paid?
+  <a href="/ticket" style="color:#f2c14e;font-weight:bold;">
+    Check Your Ticket Here
+  </a>
+</p>
 <body>
 <div class="box">
 <h1>GOLDEN PEN SHOW</h1>
